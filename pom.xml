@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.springdoc</groupId>
 	<artifactId>springdoc-openapi</artifactId>
-	<version>1.7.0</version>
+	<version>1.7.1-ahp</version>
 	<packaging>pom</packaging>
 	<name>Spring openapi documentation</name>
 	<description>Spring openapi documentation</description>
@@ -32,11 +32,10 @@
 	</developers>
 
 	<scm>
-		<url>git@github.com:springdoc/springdoc-openapi.git</url>
-		<connection>scm:git:git@github.com:springdoc/springdoc-openapi.git</connection>
-		<developerConnection>scm:git:git@github.com:springdoc/springdoc-openapi.git
+		<url>git@github.com:AHP-GmbH/springdoc/springdoc-openapi.git</url>
+		<connection>scm:git:git@github.com:AHP-GmbH/springdoc/springdoc-openapi.git</connection>
+		<developerConnection>scm:git:git@github.com:AHP-GmbH/springdoc/springdoc-openapi.git
 		</developerConnection>
-		<tag>v1.7.0</tag>
 	</scm>
 	<distributionManagement>
 		<snapshotRepository>

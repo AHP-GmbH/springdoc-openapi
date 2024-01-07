@@ -37,6 +37,7 @@
 		<developerConnection>scm:git:git@github.com:AHP-GmbH/springdoc/springdoc-openapi.git
 		</developerConnection>
 	</scm>
+	<!--
 	<distributionManagement>
 		<snapshotRepository>
 			<id>ossrh</id>
@@ -46,6 +47,23 @@
 			<id>ossrh</id>
 			<url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
 		</repository>
+	</distributionManagement>
+	-->
+	<distributionManagement>
+		<repository>
+			<uniqueVersion>false</uniqueVersion>
+			<id>iqbasis.mavenrepo.releases</id>
+			<name>iQ-BASIS Release Repository</name>
+			<url>http://nexus3.ahpgmbh.local/repository/maven-releases</url>
+			<layout>default</layout>
+		</repository>
+		<snapshotRepository>
+			<uniqueVersion>false</uniqueVersion>
+			<id>iqbasis.mavenrepo.snapshots</id>
+			<name>iQ-BASIS Snapshot Repository</name>
+			<url>http://nexus3.ahpgmbh.local/repository/maven-snapshots</url>
+			<layout>default</layout>
+		</snapshotRepository>
 	</distributionManagement>
 
 	<modules>
@@ -307,6 +325,7 @@
 							</execution>
 						</executions>
 					</plugin>
+					<!--
 					<plugin>
 						<groupId>org.sonatype.plugins</groupId>
 						<artifactId>nexus-staging-maven-plugin</artifactId>
@@ -325,6 +344,7 @@
 							</dependency>
 						</dependencies>
 					</plugin>
+					-->
 					<plugin>
 						<artifactId>maven-release-plugin</artifactId>
 						<version>${maven-release-plugin.version}</version>

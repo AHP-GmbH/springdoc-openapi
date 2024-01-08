@@ -7,10 +7,13 @@ import io.swagger.v3.core.converter.ModelConverter;
 import io.swagger.v3.core.converter.ModelConverterContext;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import org.apache.commons.lang3.StringUtils;
 import org.reactivestreams.Publisher;
 import org.springdoc.core.providers.ObjectMapperProvider;
 import reactor.core.publisher.Flux;
 
+import java.lang.annotation.Annotation;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Stack;
 
@@ -88,8 +91,23 @@ public class PreventRecursionConverter implements ModelConverter {
         lastseg = lastseg.split("\\]")[0];
         String ptype = type.getParent() == null ? "(unknown)" : type.getParent().getName();
         String pname = type.getPropertyName() == null ? "(unknown)" : type.getPropertyName();
-        Schema s = new Schema<Object>().$ref("#/components/schemas/" + lastseg)
-                .description(ptype + "." + pname + ":" + lastseg);
+        io.swagger.v3.oas.annotations.media.Schema aSchema =
+                type.getCtxAnnotations() == null ? null :
+                Arrays.stream(type.getCtxAnnotations()).filter(a -> a instanceof io.swagger.v3.oas.annotations.media.Schema)
+                        .findFirst().map(a -> (io.swagger.v3.oas.annotations.media.Schema)a).orElse(null);
+        Schema s;
+        if (aSchema != null) {
+            s = new Schema<Object>().$ref(StringUtils.isEmpty(aSchema.ref()) ? "#/components/schemas/" + lastseg : aSchema.ref())
+                    .description(aSchema.description())
+                    .type(aSchema.type())
+                    .minLength(aSchema.minLength())
+                    .maxLength(aSchema.maxLength())
+                    .format(aSchema.format())
+                    .title(aSchema.title());
+        } else {
+            s = new Schema<Object>().$ref("#/components/schemas/" + lastseg)
+                    .description(ptype + "." + pname + ":" + lastseg);
+        }
         return s;
     }
 }

@@ -39,27 +39,28 @@ public class PreventRecursionConverter implements ModelConverter {
 
     @Override
     public Schema resolve(AnnotatedType type, ModelConverterContext context, Iterator<ModelConverter> chain) {
-        Schema rc;
         if (isAhpType(type)) {
-            rc = schemaMap.get(type.getType().getTypeName());
+            if (type.isResolveAsRef() && type.isSchemaProperty()) {
+                return getTypeRef(type);
+            }
+            Schema rc = schemaMap.get(type.getType().getTypeName());
             if (rc != null) {
                 return rc;
             }
             typeStack.push(type.getType().getTypeName());
-        }
-        if (isTodoAsRef(type)) {
+            if (isTodoAsRef(type)) {
+                typeStack.pop();
+                return getTypeRef(type);
+            }
+            rc = chain.hasNext() ? chain.next().resolve(type, context, chain) : null;
             typeStack.pop();
-            Schema s = new Schema<Object>().$ref("#/components/schemas/" + getTypeRef(type));
-            return s;
-        }
-        rc = chain.hasNext() ? chain.next().resolve(type, context, chain) : null;
-        if (isAhpType(type)) {
             if (rc != null) {
                 schemaMap.put(type.getType().getTypeName(), rc);
             }
-            typeStack.pop();
+            return rc;
+        } else {
+            return chain.hasNext() ? chain.next().resolve(type, context, chain) : null;
         }
-        return rc;
     }
 
     private static final String AHP_START = "[simple type, class de.ahp.iqbasis.dal.models.";
@@ -80,11 +81,16 @@ public class PreventRecursionConverter implements ModelConverter {
         return false;
     }
 
-    private String getTypeRef(AnnotatedType type) {
+    private Schema getTypeRef(AnnotatedType type) {
         String n = type.getType().getTypeName().substring(AHP_START.length());
         String[] segs = n.split("\\.");
         String lastseg = segs[segs.length - 1];
-        return lastseg.split("\\]")[0];
+        lastseg = lastseg.split("\\]")[0];
+        String ptype = type.getParent() == null ? "(unknown)" : type.getParent().getName();
+        String pname = type.getPropertyName() == null ? "(unknown)" : type.getPropertyName();
+        Schema s = new Schema<Object>().$ref("#/components/schemas/" + lastseg)
+                .description(ptype + "." + pname + ":" + lastseg);
+        return s;
     }
 }
 

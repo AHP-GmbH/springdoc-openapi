@@ -89,6 +89,10 @@ public class PreventRecursionConverter implements ModelConverter {
         String[] segs = n.split("\\.");
         String lastseg = segs[segs.length - 1];
         lastseg = lastseg.split("\\]")[0];
+        if (lastseg != null && lastseg.indexOf('$') >= 0) {
+            String[] lsegs = lastseg.split("\\$");
+            lastseg = lsegs[lsegs.length-1];
+        }
         String ptype = type.getParent() == null ? "(unknown)" : type.getParent().getName();
         String pname = type.getPropertyName() == null ? "(unknown)" : type.getPropertyName();
         io.swagger.v3.oas.annotations.media.Schema aSchema =

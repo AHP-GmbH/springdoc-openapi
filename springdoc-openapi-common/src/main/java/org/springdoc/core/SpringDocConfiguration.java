@@ -49,6 +49,7 @@ import org.springdoc.core.converters.ResponseSupportConverter;
 import org.springdoc.core.converters.SchemaPropertyDeprecatingConverter;
 import org.springdoc.core.converters.SortOpenAPIConverter;
 import org.springdoc.core.converters.WebFluxSupportConverter;
+import org.springdoc.core.converters.PreventRecursionConverter;
 import org.springdoc.core.customizers.ActuatorOpenApiCustomizer;
 import org.springdoc.core.customizers.ActuatorOperationCustomizer;
 import org.springdoc.core.customizers.DataRestDelegatingMethodParameterCustomizer;
@@ -77,6 +78,7 @@ import org.springdoc.core.providers.SpringCloudFunctionProvider;
 import org.springdoc.core.providers.SpringDataWebPropertiesProvider;
 import org.springdoc.core.providers.SpringWebProvider;
 import org.springdoc.core.providers.WebConversionServiceProvider;
+import org.springframework.core.annotation.Order;
 import reactor.core.publisher.Flux;
 
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
@@ -190,6 +192,14 @@ public class SpringDocConfiguration {
 	@Lazy(false)
 	AdditionalModelsConverter additionalModelsConverter(ObjectMapperProvider objectMapperProvider) {
 		return new AdditionalModelsConverter(objectMapperProvider);
+	}
+
+	// AHP Modification to prevent stack overflow.
+	@Bean
+	@Order(Integer.MAX_VALUE-100)
+	@Lazy(false)
+	PreventRecursionConverter preventRecursionConverter(ObjectMapperProvider objectMapperProvider) {
+		return new PreventRecursionConverter(objectMapperProvider);
 	}
 
 	/**

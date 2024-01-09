@@ -2,6 +2,7 @@ package org.springdoc.core.converters;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.type.ArrayType;
+import com.fasterxml.jackson.databind.type.SimpleType;
 import io.swagger.v3.core.converter.AnnotatedType;
 import io.swagger.v3.core.converter.ModelConverter;
 import io.swagger.v3.core.converter.ModelConverterContext;
@@ -69,7 +70,21 @@ public class PreventRecursionConverter implements ModelConverter {
     private static final String AHP_START = "[simple type, class de.ahp.iqbasis.dal.models.";
 
     private boolean isAhpType(AnnotatedType type) {
-        return type.getType().getTypeName().startsWith(AHP_START);
+        String tn = type.getType().getTypeName();
+        if (tn.startsWith(AHP_START)) {
+            String cn = tn.substring("[simple type, class ".length());
+            cn = cn.substring(0, cn.length()-1);
+            try {
+                // Wenn es ein Enum ist, ignorieren.
+                if (Class.forName(cn).getSuperclass() == java.lang.Enum.class) {
+                    return false;
+                }
+            } catch ( Exception e ) {
+                // Ignorieren.
+            }
+            return true;
+        }
+        return false;
     }
 
     private boolean isTodoAsRef(AnnotatedType type) {

@@ -29,7 +29,7 @@ public class PreventRecursionConverter implements ModelConverter {
 
     private final ObjectMapperProvider objectMapperProvider;
 
-    private java.util.Map<String, Schema> schemaMap = new java.util.HashMap<>();
+    // private java.util.Map<String, Schema> schemaMap = new java.util.HashMap<>();
     private java.util.Stack<String> typeStack = new Stack<>();
 
     /**
@@ -47,20 +47,13 @@ public class PreventRecursionConverter implements ModelConverter {
             if (type.isResolveAsRef() && type.isSchemaProperty()) {
                 return getTypeRef(type);
             }
-            Schema rc = schemaMap.get(type.getType().getTypeName());
-            if (rc != null) {
-                return rc;
-            }
             typeStack.push(type.getType().getTypeName());
             if (isTodoAsRef(type)) {
                 typeStack.pop();
                 return getTypeRef(type);
             }
-            rc = chain.hasNext() ? chain.next().resolve(type, context, chain) : null;
+            Schema rc = chain.hasNext() ? chain.next().resolve(type, context, chain) : null;
             typeStack.pop();
-            if (rc != null) {
-                schemaMap.put(type.getType().getTypeName(), rc);
-            }
             return rc;
         } else {
             return chain.hasNext() ? chain.next().resolve(type, context, chain) : null;

@@ -46,14 +46,7 @@ import org.springdoc.core.conditions.CacheOrGroupedOpenApiCondition;
 import org.springdoc.core.conditions.MultipleOpenApiSupportCondition;
 import org.springdoc.core.configurer.SpringdocActuatorBeanFactoryConfigurer;
 import org.springdoc.core.configurer.SpringdocBeanFactoryConfigurer;
-import org.springdoc.core.converters.AdditionalModelsConverter;
-import org.springdoc.core.converters.FileSupportConverter;
-import org.springdoc.core.converters.ModelConverterRegistrar;
-import org.springdoc.core.converters.PolymorphicModelConverter;
-import org.springdoc.core.converters.PropertyCustomizingConverter;
-import org.springdoc.core.converters.ResponseSupportConverter;
-import org.springdoc.core.converters.SchemaPropertyDeprecatingConverter;
-import org.springdoc.core.converters.WebFluxSupportConverter;
+import org.springdoc.core.converters.*;
 import org.springdoc.core.customizers.ActuatorOpenApiCustomizer;
 import org.springdoc.core.customizers.ActuatorOperationCustomizer;
 import org.springdoc.core.customizers.DataRestRouterOperationCustomizer;
@@ -92,6 +85,7 @@ import org.springdoc.core.service.OperationService;
 import org.springdoc.core.service.RequestBodyService;
 import org.springdoc.core.service.SecurityService;
 import org.springdoc.core.utils.PropertyResolverUtils;
+import org.springframework.core.annotation.Order;
 import reactor.core.publisher.Flux;
 
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
@@ -198,6 +192,14 @@ public class SpringDocConfiguration {
 	@Lazy(false)
 	AdditionalModelsConverter additionalModelsConverter(ObjectMapperProvider objectMapperProvider) {
 		return new AdditionalModelsConverter(objectMapperProvider);
+	}
+
+	// AHP Modification to prevent stack overflow.
+	@Bean
+	@Order(Integer.MAX_VALUE-100)
+	@Lazy(false)
+	PreventRecursionConverter preventRecursionConverter(ObjectMapperProvider objectMapperProvider) {
+		return new PreventRecursionConverter(objectMapperProvider);
 	}
 
 	/**

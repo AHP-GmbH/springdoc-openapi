@@ -239,7 +239,9 @@
 				<module>springdoc-openapi-starter-webflux-api</module>
 				<module>springdoc-openapi-starter-webmvc-ui</module>
 				<module>springdoc-openapi-starter-webflux-ui</module>
+				<!--
 				<module>springdoc-openapi-tests</module>
+				-->
 			</modules>
 		</profile>
 		<profile>

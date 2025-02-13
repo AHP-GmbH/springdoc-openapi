@@ -52,12 +52,12 @@ import org.springdoc.core.configurer.SpringdocBeanFactoryConfigurer;
 import org.springdoc.core.converters.AdditionalModelsConverter;
 import org.springdoc.core.converters.FileSupportConverter;
 import org.springdoc.core.converters.ModelConverterRegistrar;
-import org.springdoc.core.converters.OAS31ModelConverter;
 import org.springdoc.core.converters.PolymorphicModelConverter;
 import org.springdoc.core.converters.PropertyCustomizingConverter;
 import org.springdoc.core.converters.ResponseSupportConverter;
 import org.springdoc.core.converters.SchemaPropertyDeprecatingConverter;
 import org.springdoc.core.converters.WebFluxSupportConverter;
+import org.springdoc.core.customizers.ActuatorOpenApiCustomizer;
 import org.springdoc.core.customizers.ActuatorOperationCustomizer;
 import org.springdoc.core.customizers.DataRestRouterOperationCustomizer;
 import org.springdoc.core.customizers.DelegatingMethodParameterCustomizer;
@@ -66,8 +66,6 @@ import org.springdoc.core.customizers.GlobalOperationCustomizer;
 import org.springdoc.core.customizers.OpenApiBuilderCustomizer;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springdoc.core.customizers.OperationCustomizer;
-import org.springdoc.core.customizers.OperationIdCustomizer;
-import org.springdoc.core.customizers.ParameterObjectNamingStrategyCustomizer;
 import org.springdoc.core.customizers.PropertyCustomizer;
 import org.springdoc.core.customizers.QuerydslPredicateOperationCustomizer;
 import org.springdoc.core.customizers.RouterOperationCustomizer;
@@ -77,6 +75,7 @@ import org.springdoc.core.discoverer.SpringDocParameterNameDiscoverer;
 import org.springdoc.core.filters.GlobalOpenApiMethodFilter;
 import org.springdoc.core.filters.OpenApiMethodFilter;
 import org.springdoc.core.models.GroupedOpenApi;
+import org.springdoc.core.parsers.ReturnTypeParser;
 import org.springdoc.core.properties.SpringDocConfigProperties;
 import org.springdoc.core.providers.ActuatorProvider;
 import org.springdoc.core.providers.CloudFunctionProvider;
@@ -96,6 +95,7 @@ import org.springdoc.core.service.OperationService;
 import org.springdoc.core.service.RequestBodyService;
 import org.springdoc.core.service.SecurityService;
 import org.springdoc.core.utils.PropertyResolverUtils;
+import org.springframework.core.annotation.Order;
 import reactor.core.publisher.Flux;
 
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
@@ -135,7 +135,6 @@ import static org.springdoc.core.utils.SpringDocUtils.getConfig;
 
 /**
  * The type Spring doc configuration.
- *
  * @author bnasslahsen
  */
 @Lazy(false)
@@ -203,6 +202,14 @@ public class SpringDocConfiguration {
 	@Lazy(false)
 	AdditionalModelsConverter additionalModelsConverter(ObjectMapperProvider objectMapperProvider) {
 		return new AdditionalModelsConverter(objectMapperProvider);
+	}
+
+	// AHP Modification to prevent stack overflow.
+	@Bean
+	@Order(Integer.MAX_VALUE-100)
+	@Lazy(false)
+	PreventRecursionConverter preventRecursionConverter(ObjectMapperProvider objectMapperProvider) {
+		return new PreventRecursionConverter(objectMapperProvider);
 	}
 
 	/**
@@ -274,13 +281,13 @@ public class SpringDocConfiguration {
 	/**
 	 * Open api builder open api builder.
 	 *
-	 * @param openAPI                   the open api
-	 * @param securityParser            the security parser
+	 * @param openAPI the open api
+	 * @param securityParser the security parser
 	 * @param springDocConfigProperties the spring doc config properties
-	 * @param propertyResolverUtils     the property resolver utils
+	 * @param propertyResolverUtils the property resolver utils
 	 * @param openApiBuilderCustomisers the open api builder customisers
-	 * @param serverBaseUrlCustomisers  the server base url customisers
-	 * @param javadocProvider           the javadoc provider
+	 * @param serverBaseUrlCustomisers the server base url customisers
+	 * @param javadocProvider the javadoc provider
 	 * @return the open api builder
 	 */
 	@Bean
@@ -310,9 +317,9 @@ public class SpringDocConfiguration {
 	/**
 	 * Operation builder operation service.
 	 *
-	 * @param parameterBuilder      the parameter builder
-	 * @param requestBodyService    the request body service
-	 * @param securityParser        the security parser
+	 * @param parameterBuilder the parameter builder
+	 * @param requestBodyService the request body service
+	 * @param securityParser the security parser
 	 * @param propertyResolverUtils the property resolver utils
 	 * @return the operation service
 	 */
@@ -328,8 +335,8 @@ public class SpringDocConfiguration {
 	/**
 	 * Property resolver utils property resolver utils.
 	 *
-	 * @param factory                   the factory
-	 * @param messageSource             the message source
+	 * @param factory the factory
+	 * @param messageSource the message source
 	 * @param springDocConfigProperties the spring doc config properties
 	 * @return the property resolver utils
 	 */
@@ -342,19 +349,18 @@ public class SpringDocConfiguration {
 	/**
 	 * Request body builder request body builder.
 	 *
-	 * @param parameterBuilder      the parameter builder
-	 * @param propertyResolverUtils the property resolver utils
+	 * @param parameterBuilder the parameter builder
 	 * @return the request body builder
 	 */
 	@Bean
 	@ConditionalOnMissingBean
 	@Lazy(false)
-	RequestBodyService requestBodyBuilder(GenericParameterService parameterBuilder, PropertyResolverUtils propertyResolverUtils) {
-		return new RequestBodyService(parameterBuilder, propertyResolverUtils);
+	RequestBodyService requestBodyBuilder(GenericParameterService parameterBuilder) {
+		return new RequestBodyService(parameterBuilder);
 	}
 
 	/**
-	 * Security parser.
+	 * Security parser security parser.
 	 *
 	 * @param propertyResolverUtils the property resolver utils
 	 * @return the security parser
@@ -367,22 +373,33 @@ public class SpringDocConfiguration {
 	}
 
 	/**
+	 * Generic return type parser return type parser.
+	 *
+	 * @return the return type parser
+	 */
+	@Bean
+	@Lazy(false)
+	ReturnTypeParser genericReturnTypeParser() {
+		return new ReturnTypeParser() {};
+	}
+
+	/**
 	 * Parameter builder generic parameter builder.
 	 *
-	 * @param propertyResolverUtils                        the property resolver utils
-	 * @param optionalDelegatingMethodParameterCustomizers the optional list delegating method parameter customizer
-	 * @param optionalWebConversionServiceProvider         the optional web conversion service provider
-	 * @param objectMapperProvider                         the object mapper provider
-	 * @param javadocProvider                              the javadoc provider
+	 * @param propertyResolverUtils the property resolver utils
+	 * @param optionalDelegatingMethodParameterCustomizer the optional delegating method parameter customizer
+	 * @param optionalWebConversionServiceProvider the optional web conversion service provider
+	 * @param objectMapperProvider the object mapper provider
+	 * @param javadocProvider the javadoc provider
 	 * @return the generic parameter builder
 	 */
 	@Bean
 	@ConditionalOnMissingBean
 	@Lazy(false)
 	GenericParameterService parameterBuilder(PropertyResolverUtils propertyResolverUtils,
-			Optional<List<DelegatingMethodParameterCustomizer>> optionalDelegatingMethodParameterCustomizers,
+			Optional<DelegatingMethodParameterCustomizer> optionalDelegatingMethodParameterCustomizer,
 			Optional<WebConversionServiceProvider> optionalWebConversionServiceProvider, ObjectMapperProvider objectMapperProvider, Optional<JavadocProvider> javadocProvider) {
-		return new GenericParameterService(propertyResolverUtils, optionalDelegatingMethodParameterCustomizers,
+		return new GenericParameterService(propertyResolverUtils, optionalDelegatingMethodParameterCustomizer,
 				optionalWebConversionServiceProvider, objectMapperProvider, javadocProvider);
 	}
 
@@ -407,13 +424,14 @@ public class SpringDocConfiguration {
 	/**
 	 * Spring doc providers spring doc providers.
 	 *
-	 * @param actuatorProvider               the actuator provider
-	 * @param springCloudFunctionProvider    the spring cloud function provider
-	 * @param springSecurityOAuth2Provider   the spring security o auth 2 provider
+	 * @param actuatorProvider the actuator provider
+	 * @param springCloudFunctionProvider the spring cloud function provider
+	 * @param springSecurityOAuth2Provider the spring security o auth 2 provider
 	 * @param repositoryRestResourceProvider the repository rest resource provider
-	 * @param routerFunctionProvider         the router function provider
-	 * @param springWebProvider              the spring web provider
-	 * @param objectMapperProvider           the object mapper provider
+	 * @param routerFunctionProvider the router function provider
+	 * @param springWebProvider the spring web provider
+	 * @param webConversionServiceProvider the web conversion service provider
+	 * @param objectMapperProvider the object mapper provider
 	 * @return the spring doc providers
 	 */
 	@Bean
@@ -421,10 +439,10 @@ public class SpringDocConfiguration {
 	@Lazy(false)
 	SpringDocProviders springDocProviders(Optional<ActuatorProvider> actuatorProvider, Optional<CloudFunctionProvider> springCloudFunctionProvider, Optional<SecurityOAuth2Provider> springSecurityOAuth2Provider,
 			Optional<RepositoryRestResourceProvider> repositoryRestResourceProvider, Optional<RouterFunctionProvider> routerFunctionProvider,
-			Optional<SpringWebProvider> springWebProvider,
+			Optional<SpringWebProvider> springWebProvider, Optional<WebConversionServiceProvider> webConversionServiceProvider,
 			ObjectMapperProvider objectMapperProvider) {
 		objectMapperProvider.jsonMapper().registerModule(new SpringDocRequiredModule());
-		return new SpringDocProviders(actuatorProvider, springCloudFunctionProvider, springSecurityOAuth2Provider, repositoryRestResourceProvider, routerFunctionProvider, springWebProvider, objectMapperProvider);
+		return new SpringDocProviders(actuatorProvider, springCloudFunctionProvider, springSecurityOAuth2Provider, repositoryRestResourceProvider, routerFunctionProvider, springWebProvider, webConversionServiceProvider, objectMapperProvider);
 	}
 
 	/**
@@ -442,7 +460,6 @@ public class SpringDocConfiguration {
 
 	/**
 	 * The type Spring doc web mvc actuator configuration.
-	 *
 	 * @author bnasslashen
 	 */
 	@ConditionalOnClass(WebEndpointProperties.class)
@@ -452,7 +469,7 @@ public class SpringDocConfiguration {
 		/**
 		 * Springdoc bean factory post processor 3 bean factory post processor.
 		 *
-		 * @param groupedOpenApis the grouped open apis
+		 * @param groupedOpenApis           the grouped open apis
 		 * @return the bean factory post processor
 		 */
 		@Bean
@@ -476,11 +493,23 @@ public class SpringDocConfiguration {
 			return new ActuatorOperationCustomizer(springDocConfigProperties);
 		}
 
+		/**
+		 * Actuator customizer OpenAPI customiser.
+		 *
+		 * @param webEndpointProperties the web endpoint properties
+		 * @return the OpenAPI customiser
+		 */
+		@Bean
+		@Lazy(false)
+		@ConditionalOnManagementPort(ManagementPortType.SAME)
+		GlobalOpenApiCustomizer actuatorOpenApiCustomizer(WebEndpointProperties webEndpointProperties) {
+			return new ActuatorOpenApiCustomizer(webEndpointProperties);
+		}
+
 	}
 
 	/**
 	 * The type Web conversion service configuration.
-	 *
 	 * @author bnasslashen
 	 */
 	@ConditionalOnClass(WebConversionService.class)
@@ -559,7 +588,6 @@ public class SpringDocConfiguration {
 
 	/**
 	 * The type Open api resource advice.
-	 *
 	 * @author bnasslashen
 	 */
 	@RestControllerAdvice
@@ -581,36 +609,34 @@ public class SpringDocConfiguration {
 	/**
 	 * Spring doc customizers spring doc customizers.
 	 *
-	 * @param openApiCustomizers                 the open api customizers
-	 * @param operationCustomizers               the operation customizers
-	 * @param routerOperationCustomizers         the router operation customizers
+	 * @param openApiCustomizers the open api customizers
+	 * @param operationCustomizers the operation customizers
+	 * @param routerOperationCustomizers the router operation customizers
 	 * @param dataRestRouterOperationCustomizers the data rest router operation customizers
-	 * @param methodFilters                      the method filters
-	 * @param globalOpenApiCustomizers           the global open api customizers
-	 * @param globalOperationCustomizers         the global operation customizers
-	 * @param globalOpenApiMethodFilters         the global open api method filters
+	 * @param methodFilters the method filters
+	 * @param globalOpenApiCustomizers the global open api customizers
+	 * @param globalOperationCustomizers the global operation customizers
+	 * @param globalOpenApiMethodFilters the global open api method filters
 	 * @return the spring doc customizers
 	 */
 	@Bean
 	@ConditionalOnMissingBean
 	@Lazy(false)
-	public SpringDocCustomizers springDocCustomizers(Optional<Set<OpenApiCustomizer>> openApiCustomizers,
-			Optional<Set<OperationCustomizer>> operationCustomizers,
-			Optional<Set<RouterOperationCustomizer>> routerOperationCustomizers,
-			Optional<Set<DataRestRouterOperationCustomizer>> dataRestRouterOperationCustomizers,
-			Optional<Set<OpenApiMethodFilter>> methodFilters, Optional<Set<GlobalOpenApiCustomizer>> globalOpenApiCustomizers,
-			Optional<Set<GlobalOperationCustomizer>> globalOperationCustomizers,
-			Optional<Set<GlobalOpenApiMethodFilter>> globalOpenApiMethodFilters) {
+	public SpringDocCustomizers springDocCustomizers(Optional<List<OpenApiCustomizer>> openApiCustomizers,
+			Optional<List<OperationCustomizer>> operationCustomizers,
+			Optional<List<RouterOperationCustomizer>> routerOperationCustomizers,
+			Optional<List<DataRestRouterOperationCustomizer>> dataRestRouterOperationCustomizers,
+			Optional<List<OpenApiMethodFilter>> methodFilters, Optional<List<GlobalOpenApiCustomizer>> globalOpenApiCustomizers, Optional<List<GlobalOperationCustomizer>> globalOperationCustomizers,
+			Optional<List<GlobalOpenApiMethodFilter>> globalOpenApiMethodFilters){
 		return new SpringDocCustomizers(openApiCustomizers,
 				operationCustomizers,
-				routerOperationCustomizers,
-				dataRestRouterOperationCustomizers,
-				methodFilters, globalOpenApiCustomizers, globalOperationCustomizers, globalOpenApiMethodFilters);
+				 routerOperationCustomizers,
+				 dataRestRouterOperationCustomizers,
+				 methodFilters, globalOpenApiCustomizers, globalOperationCustomizers, globalOpenApiMethodFilters);
 	}
 
 	/**
 	 * The type Querydsl provider.
-	 *
 	 * @author bnasslashen
 	 */
 	@ConditionalOnClass(value = QuerydslBindingsFactory.class)
@@ -634,42 +660,5 @@ public class SpringDocConfiguration {
 			}
 			return null;
 		}
-	}
-
-	/**
-	 * Parameter object naming strategy customizer delegating method parameter customizer.
-	 *
-	 * @return the delegating method parameter customizer
-	 */
-	@Bean
-	@ConditionalOnMissingBean
-	@Lazy(false)
-	ParameterObjectNamingStrategyCustomizer parameterObjectNamingStrategyCustomizer() {
-		return new ParameterObjectNamingStrategyCustomizer();
-	}
-
-	/**
-	 * Global open api customizer global open api customizer.
-	 *
-	 * @return the global open api customizer
-	 */
-	@Bean
-	@ConditionalOnMissingBean
-	@Lazy(false)
-	GlobalOpenApiCustomizer globalOpenApiCustomizer() {
-		return new OperationIdCustomizer();
-	}
-
-	/**
-	 * Oas 31 model converter oas 31 model converter.
-	 *
-	 * @param springDocConfigProperties the spring doc config properties
-	 * @return the oas 31 model converter
-	 */
-	@Bean
-	@ConditionalOnMissingBean
-	@Lazy(false)
-	OAS31ModelConverter oas31ModelConverter(SpringDocConfigProperties springDocConfigProperties) {
-		return springDocConfigProperties.isOpenapi31() ? new OAS31ModelConverter() : null;
 	}
 }

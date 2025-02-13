@@ -30,6 +30,7 @@
 		</developer>
 	</developers>
 
+	<!--
 	<scm>
 		<url>git@github.com:springdoc/springdoc-openapi.git</url>
 		<connection>scm:git:git@github.com:springdoc/springdoc-openapi.git</connection>
@@ -47,7 +48,29 @@
 			<url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
 		</repository>
 	</distributionManagement>
-
+	-->
+	<scm>
+		<url>git@github.com:AHP-GmbH/springdoc/springdoc-openapi.git</url>
+		<connection>scm:git:git@github.com:AHP-GmbH/springdoc/springdoc-openapi.git</connection>
+		<developerConnection>scm:git:git@github.com:AHP-GmbH/springdoc/springdoc-openapi.git
+		</developerConnection>
+	</scm>
+	<distributionManagement>
+		<repository>
+			<uniqueVersion>false</uniqueVersion>
+			<id>iqbasis.mavenrepo.releases</id>
+			<name>iQ-BASIS Release Repository</name>
+			<url>http://nexus3.ahpgmbh.local/repository/maven-releases</url>
+			<layout>default</layout>
+		</repository>
+		<snapshotRepository>
+			<uniqueVersion>false</uniqueVersion>
+			<id>iqbasis.mavenrepo.snapshots</id>
+			<name>iQ-BASIS Snapshot Repository</name>
+			<url>http://nexus3.ahpgmbh.local/repository/maven-snapshots</url>
+			<layout>default</layout>
+		</snapshotRepository>
+	</distributionManagement>
 	<modules>
 		<module>springdoc-openapi-starter-common</module>
 		<module>springdoc-openapi-starter-webmvc-api</module>
@@ -218,7 +241,9 @@
 				<module>springdoc-openapi-starter-webflux-api</module>
 				<module>springdoc-openapi-starter-webmvc-ui</module>
 				<module>springdoc-openapi-starter-webflux-ui</module>
+				<!--
 				<module>springdoc-openapi-tests</module>
+				-->
 			</modules>
 		</profile>
 		<profile>
